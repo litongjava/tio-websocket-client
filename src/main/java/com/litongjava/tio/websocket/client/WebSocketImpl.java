@@ -213,9 +213,11 @@ import com.litongjava.tio.core.Tio;
 import com.litongjava.tio.core.intf.Packet;
 import com.litongjava.tio.http.common.HeaderName;
 import com.litongjava.tio.http.common.HeaderValue;
+import com.litongjava.tio.http.common.HttpMethod;
 import com.litongjava.tio.http.common.HttpResponse;
 import com.litongjava.tio.http.common.HttpResponseStatus;
-import com.litongjava.tio.http.common.Method;
+import com.litongjava.tio.utils.encoder.Base64Utils;
+import com.litongjava.tio.utils.encoder.Sha1Utils;
 import com.litongjava.tio.utils.hutool.StrUtil;
 import com.litongjava.tio.websocket.client.event.CloseEvent;
 import com.litongjava.tio.websocket.client.event.ErrorEvent;
@@ -229,8 +231,6 @@ import com.litongjava.tio.websocket.common.Opcode;
 import com.litongjava.tio.websocket.common.WsPacket;
 import com.litongjava.tio.websocket.common.WsRequest;
 import com.litongjava.tio.websocket.common.WsSessionContext;
-import com.litongjava.tio.websocket.common.util.BASE64Util;
-import com.litongjava.tio.websocket.common.util.SHA1Util;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -254,14 +254,10 @@ public class WebSocketImpl implements WebSocket {
   private String secWebsocketKey = null;
 
   // concurrent hash set
-  private Set<Consumer<OpenEvent>> onOpenListenerSet =
-      Collections.newSetFromMap(new ConcurrentHashMap<>());
-  private Set<Consumer<CloseEvent>> onCloseListenerSet =
-      Collections.newSetFromMap(new ConcurrentHashMap<>());
-  private Set<Consumer<ErrorEvent>> onErrorListenerSet =
-      Collections.newSetFromMap(new ConcurrentHashMap<>());
-  private Set<Consumer<Throwable>> onThrowsListenerSet =
-      Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private Set<Consumer<OpenEvent>> onOpenListenerSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private Set<Consumer<CloseEvent>> onCloseListenerSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private Set<Consumer<ErrorEvent>> onErrorListenerSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private Set<Consumer<Throwable>> onThrowsListenerSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
   private Subject<WsPacket> sendWsPacketStream = PublishSubject.<WsPacket>create().toSerialized();
   private Subject<Object> sendNotifier = PublishSubject.create().toSerialized();
@@ -282,9 +278,9 @@ public class WebSocketImpl implements WebSocket {
     CountDownLatch wg = new CountDownLatch(1);
     int i = 1;
     while (wsClient.clientChannelContext == null) {
-      wsClient.clientChannelContext =
-          wsClient.tioClient.connect(new Node(wsClient.uri.getHost(), wsClient.uri.getPort()));
-      if (wsClient.clientChannelContext != null) break;
+      wsClient.clientChannelContext = wsClient.tioClient.connect(new Node(wsClient.uri.getHost(), wsClient.uri.getPort()));
+      if (wsClient.clientChannelContext != null)
+        break;
       wg.await(10 * i, TimeUnit.MILLISECONDS);
       i++;
     }
@@ -305,17 +301,21 @@ public class WebSocketImpl implements WebSocket {
 
   @Override
   public Runnable addOnClose(Consumer<CloseEvent> listener) {
-    if (listener != null) onCloseListenerSet.add(listener);
+    if (listener != null)
+      onCloseListenerSet.add(listener);
     return () -> {
-      if (listener != null) onCloseListenerSet.remove(listener);
+      if (listener != null)
+        onCloseListenerSet.remove(listener);
     };
   }
 
   @Override
   public Runnable addOnError(Consumer<ErrorEvent> listener) {
-    if (listener != null) onErrorListenerSet.add(listener);
+    if (listener != null)
+      onErrorListenerSet.add(listener);
     return () -> {
-      if (listener != null) onErrorListenerSet.remove(listener);
+      if (listener != null)
+        onErrorListenerSet.remove(listener);
     };
   }
 
@@ -327,17 +327,21 @@ public class WebSocketImpl implements WebSocket {
 
   @Override
   public Runnable addOnOpen(Consumer<OpenEvent> listener) {
-    if (listener != null) onOpenListenerSet.add(listener);
+    if (listener != null)
+      onOpenListenerSet.add(listener);
     return () -> {
-      if (listener != null) onOpenListenerSet.remove(listener);
+      if (listener != null)
+        onOpenListenerSet.remove(listener);
     };
   }
 
   @Override
   public Runnable addOnThrows(Consumer<Throwable> listener) {
-    if (listener != null) onThrowsListenerSet.add(listener);
+    if (listener != null)
+      onThrowsListenerSet.add(listener);
     return () -> {
-      if (listener != null) onThrowsListenerSet.remove(listener);
+      if (listener != null)
+        onThrowsListenerSet.remove(listener);
     };
   }
 
@@ -405,12 +409,14 @@ public class WebSocketImpl implements WebSocket {
 
   @Override
   public synchronized void close(int code, String reason) {
-    if (readyState == WebSocket.CLOSED) return;
+    if (readyState == WebSocket.CLOSED)
+      return;
     if (readyState != WebSocket.CLOSING) {
       readyState = WebSocket.CLOSING;
       WsPacket close = new WsPacket();
       close.setWsOpcode(Opcode.CLOSE);
-      if (StrUtil.isBlank(reason)) reason = "";
+      if (StrUtil.isBlank(reason))
+        reason = "";
       try {
         byte[] reasonBytes = reason.getBytes("UTF-8");
         short c = (short) code;
@@ -423,18 +429,17 @@ public class WebSocketImpl implements WebSocket {
       }
       Tio.send(ctx, close);
       String finalReason = reason;
-      Observable.timer(1, TimeUnit.SECONDS)
-          .subscribe(
-              i -> {
-                clear(code, finalReason);
-              });
+      Observable.timer(1, TimeUnit.SECONDS).subscribe(i -> {
+        clear(code, finalReason);
+      });
     } else {
       clear(code, reason);
     }
   }
 
   synchronized void clear(int code, String reason) {
-    if (readyState == WebSocket.CLOSED) return;
+    if (readyState == WebSocket.CLOSED)
+      return;
     readyState = WebSocket.CLOSED;
     publisher.onComplete();
     onClose(code, reason);
@@ -452,7 +457,8 @@ public class WebSocketImpl implements WebSocket {
   @Override
   public void send(WsPacket packet) {
     sendWsPacketStream.onNext(packet);
-    if (readyState == WebSocket.OPEN) sendNotifier.onNext(true);
+    if (readyState == WebSocket.OPEN)
+      sendNotifier.onNext(true);
   }
 
   private synchronized void sendImmediately(WsPacket packet) {
@@ -507,8 +513,7 @@ public class WebSocketImpl implements WebSocket {
 
   @Override
   public Observable<WsPacket> getMessageStream() {
-    return getWsPacketStream()
-        .filter(p -> p.getWsOpcode().equals(Opcode.BINARY) || p.getWsOpcode().equals(Opcode.TEXT));
+    return getWsPacketStream().filter(p -> p.getWsOpcode().equals(Opcode.BINARY) || p.getWsOpcode().equals(Opcode.TEXT));
   }
 
   private Observable<WsPacket> getWsPacketStream() {
@@ -527,10 +532,12 @@ public class WebSocketImpl implements WebSocket {
     if (StrUtil.isBlank(path)) {
       path = "/";
     }
-    ClientHttpRequest httpRequest =
-        new ClientHttpRequest(Method.GET, path, wsClient.uri.getRawQuery());
+    ClientHttpRequest httpRequest = new ClientHttpRequest(HttpMethod.GET, path, wsClient.uri.getRawQuery());
     Map<String, String> headers = new HashMap<>();
-    if (additionalHttpHeaders != null) headers.putAll(additionalHttpHeaders);
+    if (additionalHttpHeaders != null) {
+      headers.putAll(additionalHttpHeaders);
+    }
+      
     headers.put("Host", wsClient.uri.getHost() + ":" + wsClient.uri.getPort());
     headers.put("Upgrade", "websocket");
     headers.put("Connection", "Upgrade");
@@ -542,46 +549,40 @@ public class WebSocketImpl implements WebSocket {
 
     ObjKit.Box<Disposable> disposableBox = ObjKit.box(null);
 
-    disposableBox.value =
-        publisher
-            .filter(packet -> !session.isHandshaked())
-            .subscribe(
-                packet -> {
-                  if (packet instanceof HttpResponse) {
-                    HttpResponse resp = (HttpResponse) packet;
+    disposableBox.value = publisher.filter(packet -> !session.isHandshaked()).subscribe(packet -> {
+      if (packet instanceof HttpResponse) {
+        HttpResponse resp = (HttpResponse) packet;
 
-                    if (resp.getStatus() == HttpResponseStatus.C101) {
-                      HeaderValue upgrade = resp.getHeader(HeaderName.Upgrade);
-                      if (upgrade == null || !upgrade.value.toLowerCase().equals("websocket")) {
-                        close(1002, "no upgrade or upgrade invalid");
-                        return;
-                      }
-                      HeaderValue connection = resp.getHeader(HeaderName.Connection);
-                      if (connection == null || !connection.value.toLowerCase().equals("upgrade")) {
-                        close(1002, "no connection or connection invalid");
-                        return;
-                      }
-                      HeaderValue secWebsocketAccept =
-                          resp.getHeader(HeaderName.Sec_WebSocket_Accept);
-                      if (secWebsocketAccept == null
-                          || !verifySecWebsocketAccept(secWebsocketAccept.value)) {
-                        close(1002, "no Sec_WebSocket_Accept or Sec_WebSocket_Accept invalid");
-                        return;
-                      }
-                      // TODO: Sec-WebSocket-Extensions, Sec-WebSocket-Protocol
+        if (resp.getStatus() == HttpResponseStatus.C101) {
+          HeaderValue upgrade = resp.getHeader(HeaderName.Upgrade);
+          if (upgrade == null || !upgrade.value.toLowerCase().equals("websocket")) {
+            close(1002, "no upgrade or upgrade invalid");
+            return;
+          }
+          HeaderValue connection = resp.getHeader(HeaderName.Connection);
+          if (connection == null || !connection.value.toLowerCase().equals("upgrade")) {
+            close(1002, "no connection or connection invalid");
+            return;
+          }
+          HeaderValue secWebsocketAccept = resp.getHeader(HeaderName.Sec_WebSocket_Accept);
+          if (secWebsocketAccept == null || !verifySecWebsocketAccept(secWebsocketAccept.value)) {
+            close(1002, "no Sec_WebSocket_Accept or Sec_WebSocket_Accept invalid");
+            return;
+          }
+          // TODO: Sec-WebSocket-Extensions, Sec-WebSocket-Protocol
 
-                      readyState = WebSocket.OPEN;
-                      session.setHandshaked(true);
-                      onOpen();
-                    } else {
-                      // TODO: support other http code
-                      close(1002, "not support http code: " + resp.getStatus().status);
-                      return;
-                    }
+          readyState = WebSocket.OPEN;
+          session.setHandshaked(true);
+          onOpen();
+        } else {
+          // TODO: support other http code
+          close(1002, "not support http code: " + resp.getStatus().status);
+          return;
+        }
 
-                    disposableBox.value.dispose();
-                  }
-                });
+        disposableBox.value.dispose();
+      }
+    });
 
     Tio.send(ctx, httpRequest);
   }
@@ -592,66 +593,52 @@ public class WebSocketImpl implements WebSocket {
       for (int i = 0; i < 16; i++) {
         bytes[i] = (byte) (Math.random() * 256);
       }
-      secWebsocketKey = BASE64Util.byteArrayToBase64(bytes);
+      secWebsocketKey = Base64Utils.encodeToString(bytes);
     }
     return secWebsocketKey;
   }
 
   private boolean verifySecWebsocketAccept(String secWebsocketAccept) {
-    return BASE64Util.byteArrayToBase64(
-            SHA1Util.SHA1(secWebsocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
-        .equals(secWebsocketAccept);
+    return Base64Utils.encodeToString(Sha1Utils.SHA1(secWebsocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")).equals(secWebsocketAccept);
   }
 
   private void bindInitStreamObserver() {
-    sendWsPacketStream
-        .buffer(sendNotifier) // Is it need back pressure control?
-        .subscribe(
-            packets -> packets.forEach(this::sendImmediately),
-            this::onThrows,
-            sendNotifier::onComplete);
-    getMessageStream()
-        .subscribe(
-            p -> {
-              Consumer<MessageEvent> onMessage = wsClient.config.getOnMessage();
-              if (onMessage != null) {
-                onMessage.accept(new MessageEvent(p));
-              }
-            },
-            this::onThrows);
-    getWsPacketStream()
-        .filter(p -> p.getWsOpcode().equals(Opcode.CLOSE))
-        .subscribe(
-            packet -> {
-              if (readyState == WebSocket.CLOSED) return;
-              byte[] body = packet.getBody();
-              short code = 1000;
-              String reason = "";
-              if (body != null && body.length >= 2) {
-                ByteBuffer bodyBuf = ByteBuffer.wrap(body);
-                code = bodyBuf.getShort();
-                byte[] reasonBytes = new byte[body.length - 2];
-                bodyBuf.get(reasonBytes, 0, reasonBytes.length);
-                reason = new String(reasonBytes, "UTF-8");
-              }
-              if (readyState == WebSocket.CLOSING) {
-                clear(code, reason);
-              } else {
-                readyState = WebSocket.CLOSING;
-                packet.setBody(ByteBuffer.allocate(2).putShort(code).array());
-                Tio.send(ctx, packet);
-                close(code, reason);
-              }
-            });
-    getWsPacketStream()
-        .filter(p -> p.getWsOpcode().equals(Opcode.PING))
-        .subscribe(
-            packet -> {
-              WsPacket pong = new WsPacket();
-              pong.setWsOpcode(Opcode.PONG);
-              pong.setWsEof(true);
-              Tio.send(ctx, pong);
-            });
+    sendWsPacketStream.buffer(sendNotifier) // Is it need back pressure control?
+        .subscribe(packets -> packets.forEach(this::sendImmediately), this::onThrows, sendNotifier::onComplete);
+    getMessageStream().subscribe(p -> {
+      Consumer<MessageEvent> onMessage = wsClient.config.getOnMessage();
+      if (onMessage != null) {
+        onMessage.accept(new MessageEvent(p));
+      }
+    }, this::onThrows);
+    getWsPacketStream().filter(p -> p.getWsOpcode().equals(Opcode.CLOSE)).subscribe(packet -> {
+      if (readyState == WebSocket.CLOSED)
+        return;
+      byte[] body = packet.getBody();
+      short code = 1000;
+      String reason = "";
+      if (body != null && body.length >= 2) {
+        ByteBuffer bodyBuf = ByteBuffer.wrap(body);
+        code = bodyBuf.getShort();
+        byte[] reasonBytes = new byte[body.length - 2];
+        bodyBuf.get(reasonBytes, 0, reasonBytes.length);
+        reason = new String(reasonBytes, "UTF-8");
+      }
+      if (readyState == WebSocket.CLOSING) {
+        clear(code, reason);
+      } else {
+        readyState = WebSocket.CLOSING;
+        packet.setBody(ByteBuffer.allocate(2).putShort(code).array());
+        Tio.send(ctx, packet);
+        close(code, reason);
+      }
+    });
+    getWsPacketStream().filter(p -> p.getWsOpcode().equals(Opcode.PING)).subscribe(packet -> {
+      WsPacket pong = new WsPacket();
+      pong.setWsOpcode(Opcode.PONG);
+      pong.setWsEof(true);
+      Tio.send(ctx, pong);
+    });
   }
 
   private static WsPacket cloneWsPacket(WsPacket p) {

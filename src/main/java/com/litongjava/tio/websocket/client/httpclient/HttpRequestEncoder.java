@@ -204,8 +204,8 @@ import org.slf4j.LoggerFactory;
 
 import com.litongjava.tio.core.ChannelContext;
 import com.litongjava.tio.core.TioConfig;
-import com.litongjava.tio.http.common.HttpConst;
 import com.litongjava.tio.http.common.HttpRequest;
+import com.litongjava.tio.http.common.RequestHeaderKey;
 import com.litongjava.tio.http.common.RequestLine;
 import com.litongjava.tio.utils.SysConst;
 
@@ -236,7 +236,7 @@ public class HttpRequestEncoder {
     }
     if (bodyLength > 0) {
       httpRequest.addHeader(
-          HttpConst.RequestHeaderKey.Content_Length, Integer.toString(bodyLength));
+          RequestHeaderKey.Content_Length, Integer.toString(bodyLength));
     }
 
     RequestLine requestLine = httpRequest.getRequestLine();

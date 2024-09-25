@@ -193,5 +193,5 @@
 */
 package com.litongjava.tio.websocket.client.event;
 
-public class OpenEvent implements WsEvent {
+public class OpenEvent implements WebsocketEvent {
 }

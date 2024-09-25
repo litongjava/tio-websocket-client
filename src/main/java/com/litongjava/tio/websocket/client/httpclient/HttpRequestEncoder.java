@@ -202,12 +202,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.litongjava.model.sys.SysConst;
 import com.litongjava.tio.core.ChannelContext;
 import com.litongjava.tio.core.TioConfig;
 import com.litongjava.tio.http.common.HttpRequest;
 import com.litongjava.tio.http.common.RequestHeaderKey;
 import com.litongjava.tio.http.common.RequestLine;
-import com.litongjava.tio.utils.SysConst;
 
 /**
  * http client中使用

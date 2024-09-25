@@ -193,7 +193,7 @@
 */
 package com.litongjava.tio.websocket.client.event;
 
-public class ErrorEvent implements WsEvent {
+public class ErrorEvent implements WebsocketEvent {
   public final String msg;
 
   public ErrorEvent(String msg) {

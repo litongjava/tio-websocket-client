@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.litongjava.model.sys.SysConst;
 import com.litongjava.tio.core.ChannelContext;
 import com.litongjava.tio.core.exception.TioDecodeException;
 import com.litongjava.tio.http.common.HeaderName;
@@ -18,7 +19,6 @@ import com.litongjava.tio.http.common.HttpResponse;
 import com.litongjava.tio.http.common.HttpResponseStatus;
 import com.litongjava.tio.http.common.ResponseHeaderKey;
 import com.litongjava.tio.http.common.ResponseLine;
-import com.litongjava.tio.utils.SysConst;
 import com.litongjava.tio.utils.hutool.StrUtil;
 
 /**

@@ -7,8 +7,8 @@ import com.litongjava.tio.websocket.client.event.CloseEvent;
 import com.litongjava.tio.websocket.client.event.ErrorEvent;
 import com.litongjava.tio.websocket.client.event.MessageEvent;
 import com.litongjava.tio.websocket.client.event.OpenEvent;
-import com.litongjava.tio.websocket.common.WebsocketSocketPacket;
-import com.litongjava.tio.websocket.common.WebsocketRequest;
+import com.litongjava.tio.websocket.common.WebSocketPacket;
+import com.litongjava.tio.websocket.common.WebSocketRequest;
 
 import io.reactivex.Observable;
 
@@ -99,7 +99,7 @@ public interface WebSocket {
    * @param data
    */
   default void send(byte[] data) {
-    send(WebsocketRequest.fromBytes(data));
+    send(WebSocketRequest.fromBytes(data));
   }
 
   /**
@@ -127,12 +127,12 @@ public interface WebSocket {
    * Send packet to server
    * @param packet
    */
-  void send(WebsocketSocketPacket packet);
+  void send(WebSocketPacket packet);
 
   /**
    * Get message stream from server
    * @return
    */
-  Observable<WebsocketSocketPacket> getMessageStream();
+  Observable<WebSocketPacket> getMessageStream();
 
 }

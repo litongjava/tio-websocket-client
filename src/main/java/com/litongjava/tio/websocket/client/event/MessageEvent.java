@@ -193,12 +193,12 @@
 */
 package com.litongjava.tio.websocket.client.event;
 
-import com.litongjava.tio.websocket.common.WebsocketSocketPacket;
+import com.litongjava.tio.websocket.common.WebSocketPacket;
 
 public class MessageEvent implements WebsocketEvent {
-  public final WebsocketSocketPacket data;
+  public final WebSocketPacket data;
 
-  public MessageEvent(WebsocketSocketPacket data) {
+  public MessageEvent(WebSocketPacket data) {
     this.data = data;
   }
 }

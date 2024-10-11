@@ -32,9 +32,9 @@ import com.litongjava.tio.websocket.client.kit.ByteKit;
 import com.litongjava.tio.websocket.client.kit.ObjKit;
 import com.litongjava.tio.websocket.client.kit.TioKit;
 import com.litongjava.tio.websocket.common.Opcode;
-import com.litongjava.tio.websocket.common.WebsocketRequest;
-import com.litongjava.tio.websocket.common.WebsocketSessionContext;
-import com.litongjava.tio.websocket.common.WebsocketSocketPacket;
+import com.litongjava.tio.websocket.common.WebSocketRequest;
+import com.litongjava.tio.websocket.common.WebSocketSessionContext;
+import com.litongjava.tio.websocket.common.WebSocketPacket;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -60,7 +60,7 @@ public class WebSocketImpl implements WebSocket {
   private Set<Consumer<ErrorEvent>> onErrorListenerSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private Set<Consumer<Throwable>> onThrowsListenerSet = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-  private Subject<WebsocketSocketPacket> sendWsPacketStream = PublishSubject.<WebsocketSocketPacket>create().toSerialized();
+  private Subject<WebSocketPacket> sendWsPacketStream = PublishSubject.<WebSocketPacket>create().toSerialized();
   private Subject<Object> sendNotifier = PublishSubject.create().toSerialized();
 
   WebSocketImpl(WebsocketClient wsClient) {
@@ -89,7 +89,7 @@ public class WebSocketImpl implements WebSocket {
     ctx = wsClient.clientChannelContext;
     ctx.setAttribute(packetPublisherKey, publisher);
     ctx.setAttribute(clientIntoCtxAttribute, wsClient);
-    WebsocketSessionContext session = new WebsocketSessionContext();
+    WebSocketSessionContext session = new WebSocketSessionContext();
     ctx.set(session);
 
     handshake();
@@ -214,7 +214,7 @@ public class WebSocketImpl implements WebSocket {
       return;
     if (readyState != WebSocket.CLOSING) {
       readyState = WebSocket.CLOSING;
-      WebsocketSocketPacket close = new WebsocketSocketPacket();
+      WebSocketPacket close = new WebSocketPacket();
       close.setWsOpcode(Opcode.CLOSE);
       if (StrUtil.isBlank(reason))
         reason = "";
@@ -252,17 +252,17 @@ public class WebSocketImpl implements WebSocket {
 
   @Override
   public void send(String data) {
-    send(WebsocketRequest.fromText(data, wsClient.config.getCharset()));
+    send(WebSocketRequest.fromText(data, wsClient.config.getCharset()));
   }
 
   @Override
-  public void send(WebsocketSocketPacket packet) {
+  public void send(WebSocketPacket packet) {
     sendWsPacketStream.onNext(packet);
     if (readyState == WebSocket.OPEN)
       sendNotifier.onNext(true);
   }
 
-  private synchronized void sendImmediately(WebsocketSocketPacket packet) {
+  private synchronized void sendImmediately(WebSocketPacket packet) {
     byte[] wsBody = packet.getBody();
     byte[][] wsBodies = packet.getBodys();
     int wsBodyLength = 0;
@@ -293,7 +293,7 @@ public class WebSocketImpl implements WebSocket {
         byte[][] parts = ByteKit.split(bodyBuf.array(), maxBodyBytesLength);
         for (int i = 0; i < parts.length; i++) {
           byte[] body = parts[i];
-          WebsocketSocketPacket sentPacket = cloneWsPacket(packet);
+          WebSocketPacket sentPacket = cloneWsPacket(packet);
           sentPacket.setBodys(null);
           sentPacket.setBody(body);
           sentPacket.setWsBodyLength(body.length);
@@ -313,19 +313,19 @@ public class WebSocketImpl implements WebSocket {
   }
 
   @Override
-  public Observable<WebsocketSocketPacket> getMessageStream() {
+  public Observable<WebSocketPacket> getMessageStream() {
     return getWsPacketStream().filter(p -> p.getWsOpcode().equals(Opcode.BINARY) || p.getWsOpcode().equals(Opcode.TEXT));
   }
 
-  private Observable<WebsocketSocketPacket> getWsPacketStream() {
-    return publisher.filter(p -> p instanceof WebsocketSocketPacket).map(p -> (WebsocketSocketPacket) p);
+  private Observable<WebSocketPacket> getWsPacketStream() {
+    return publisher.filter(p -> p instanceof WebSocketPacket).map(p -> (WebSocketPacket) p);
   }
 
   private void handshake() {
     readyState = WebSocket.CONNECTING;
 
     ClientChannelContext ctx = wsClient.getClientChannelContext();
-    WebsocketSessionContext session = (WebsocketSessionContext) ctx.get();
+    WebSocketSessionContext session = (WebSocketSessionContext) ctx.get();
 
     session.setHandshaked(false);
 
@@ -435,15 +435,15 @@ public class WebSocketImpl implements WebSocket {
       }
     });
     getWsPacketStream().filter(p -> p.getWsOpcode().equals(Opcode.PING)).subscribe(packet -> {
-      WebsocketSocketPacket pong = new WebsocketSocketPacket();
+      WebSocketPacket pong = new WebSocketPacket();
       pong.setWsOpcode(Opcode.PONG);
       pong.setWsEof(true);
       Tio.send(ctx, pong);
     });
   }
 
-  private static WebsocketSocketPacket cloneWsPacket(WebsocketSocketPacket p) {
-    WebsocketSocketPacket packet = new WebsocketSocketPacket();
+  private static WebSocketPacket cloneWsPacket(WebSocketPacket p) {
+    WebSocketPacket packet = new WebSocketPacket();
     packet.setHandShake(p.isHandShake());
     packet.setBody(p.getBody());
     packet.setBodys(p.getBodys());

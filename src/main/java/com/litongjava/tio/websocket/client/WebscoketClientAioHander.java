@@ -18,11 +18,11 @@ import com.litongjava.tio.http.common.HttpResponse;
 import com.litongjava.tio.websocket.client.httpclient.HttpRequestEncoder;
 import com.litongjava.tio.websocket.client.httpclient.HttpResponseDecoder;
 import com.litongjava.tio.websocket.common.Opcode;
-import com.litongjava.tio.websocket.common.WsClientDecoder;
-import com.litongjava.tio.websocket.common.WsClientEncoder;
-import com.litongjava.tio.websocket.common.WebscoketResponse;
-import com.litongjava.tio.websocket.common.WebsocketSessionContext;
-import com.litongjava.tio.websocket.common.WebsocketSocketPacket;
+import com.litongjava.tio.websocket.common.WebSocketClientDecoder;
+import com.litongjava.tio.websocket.common.WebSocketClientEncoder;
+import com.litongjava.tio.websocket.common.WebSocketResponse;
+import com.litongjava.tio.websocket.common.WebSocketSessionContext;
+import com.litongjava.tio.websocket.common.WebSocketPacket;
 
 import io.reactivex.subjects.Subject;
 
@@ -38,17 +38,17 @@ public class WebscoketClientAioHander implements ClientAioHandler {
 
   @Override
   public Packet decode(ByteBuffer buffer, int limit, int position, int readableLength, ChannelContext ctx) throws TioDecodeException {
-    WebsocketSessionContext session = (WebsocketSessionContext) ctx.get();
+    WebSocketSessionContext session = (WebSocketSessionContext) ctx.get();
     if (!session.isHandshaked()) {
       HttpResponse response = HttpResponseDecoder.decode(buffer, limit, position, readableLength, ctx);
       session.setHandshakeResponse(response);
       return response;
     }
-    WebscoketResponse packet = WsClientDecoder.decode(buffer, ctx);
+    WebSocketResponse packet = WebSocketClientDecoder.decode(buffer, ctx);
     if (packet != null) {
       if (!packet.isWsEof()) { // 数据包尚未完成
         @SuppressWarnings("unchecked")
-        List<WebscoketResponse> parts = (List<WebscoketResponse>) ctx.getAttribute(NOT_FINAL_WEBSOCKET_PACKET_PARTS);
+        List<WebSocketResponse> parts = (List<WebSocketResponse>) ctx.getAttribute(NOT_FINAL_WEBSOCKET_PACKET_PARTS);
         if (parts == null) {
           parts = new ArrayList<>();
           ctx.setAttribute(NOT_FINAL_WEBSOCKET_PACKET_PARTS, parts);
@@ -56,22 +56,22 @@ public class WebscoketClientAioHander implements ClientAioHandler {
         parts.add(packet);
       } else {
         @SuppressWarnings("unchecked")
-        List<WebscoketResponse> parts = (List<WebscoketResponse>) ctx.getAttribute(NOT_FINAL_WEBSOCKET_PACKET_PARTS);
+        List<WebSocketResponse> parts = (List<WebSocketResponse>) ctx.getAttribute(NOT_FINAL_WEBSOCKET_PACKET_PARTS);
         if (parts != null) {
           ctx.setAttribute(NOT_FINAL_WEBSOCKET_PACKET_PARTS, null);
 
           parts.add(packet);
-          WebscoketResponse first = parts.get(0);
+          WebSocketResponse first = parts.get(0);
           packet.setWsOpcode(first.getWsOpcode());
 
           int allBodyLength = 0;
-          for (WebscoketResponse wsRequest : parts) {
+          for (WebSocketResponse wsRequest : parts) {
             allBodyLength += wsRequest.getBody().length;
           }
 
           byte[] allBody = new byte[allBodyLength];
           Integer index = 0;
-          for (WebscoketResponse wsRequest : parts) {
+          for (WebSocketResponse wsRequest : parts) {
             System.arraycopy(wsRequest.getBody(), 0, allBody, index, wsRequest.getBody().length);
             index += wsRequest.getBody().length;
           }
@@ -94,7 +94,7 @@ public class WebscoketClientAioHander implements ClientAioHandler {
 
   @Override
   public ByteBuffer encode(Packet packet, TioConfig tioConfig, ChannelContext ctx) {
-    WebsocketSessionContext session = (WebsocketSessionContext) ctx.get();
+    WebSocketSessionContext session = (WebSocketSessionContext) ctx.get();
     if (!session.isHandshaked() && packet instanceof HttpRequest) {
       try {
         return HttpRequestEncoder.encode((HttpRequest) packet, tioConfig, ctx);
@@ -104,7 +104,7 @@ public class WebscoketClientAioHander implements ClientAioHandler {
       }
     }
     try {
-      return WsClientEncoder.encode((WebsocketSocketPacket) packet, tioConfig, ctx);
+      return WebSocketClientEncoder.encode((WebSocketPacket) packet, tioConfig, ctx);
     } catch (Exception e) {
       log.error(e.toString());
       return null;
@@ -113,8 +113,8 @@ public class WebscoketClientAioHander implements ClientAioHandler {
 
   @Override
   public void handler(Packet packet, ChannelContext ctx) throws Exception {
-    if (packet instanceof WebsocketSocketPacket) {
-      WebsocketSocketPacket wsPacket = (WebsocketSocketPacket) packet;
+    if (packet instanceof WebSocketPacket) {
+      WebSocketPacket wsPacket = (WebSocketPacket) packet;
       if (!wsPacket.isWsEof()) {
         return;
       }

@@ -20,8 +20,8 @@ import com.litongjava.tio.http.common.HeaderValue;
 import com.litongjava.tio.http.common.HttpMethod;
 import com.litongjava.tio.http.common.HttpResponse;
 import com.litongjava.tio.http.common.HttpResponseStatus;
-import com.litongjava.tio.utils.encoder.Base64Utils;
-import com.litongjava.tio.utils.encoder.Sha1Utils;
+import com.litongjava.tio.utils.base64.Base64Utils;
+import com.litongjava.tio.utils.digest.Sha1Utils;
 import com.litongjava.tio.utils.hutool.StrUtil;
 import com.litongjava.tio.websocket.client.event.CloseEvent;
 import com.litongjava.tio.websocket.client.event.ErrorEvent;
@@ -32,9 +32,9 @@ import com.litongjava.tio.websocket.client.kit.ByteKit;
 import com.litongjava.tio.websocket.client.kit.ObjKit;
 import com.litongjava.tio.websocket.client.kit.TioKit;
 import com.litongjava.tio.websocket.common.Opcode;
+import com.litongjava.tio.websocket.common.WebSocketPacket;
 import com.litongjava.tio.websocket.common.WebSocketRequest;
 import com.litongjava.tio.websocket.common.WebSocketSessionContext;
-import com.litongjava.tio.websocket.common.WebSocketPacket;
 
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
@@ -79,7 +79,8 @@ public class WebSocketImpl implements WebSocket {
     CountDownLatch wg = new CountDownLatch(1);
     int i = 1;
     while (wsClient.clientChannelContext == null) {
-      wsClient.clientChannelContext = wsClient.tioClient.connect(new Node(wsClient.uri.getHost(), wsClient.uri.getPort()));
+      wsClient.clientChannelContext = wsClient.tioClient
+          .connect(new Node(wsClient.uri.getHost(), wsClient.uri.getPort()));
       if (wsClient.clientChannelContext != null)
         break;
       wg.await(10 * i, TimeUnit.MILLISECONDS);
@@ -314,7 +315,8 @@ public class WebSocketImpl implements WebSocket {
 
   @Override
   public Observable<WebSocketPacket> getMessageStream() {
-    return getWsPacketStream().filter(p -> p.getWsOpcode().equals(Opcode.BINARY) || p.getWsOpcode().equals(Opcode.TEXT));
+    return getWsPacketStream()
+        .filter(p -> p.getWsOpcode().equals(Opcode.BINARY) || p.getWsOpcode().equals(Opcode.TEXT));
   }
 
   private Observable<WebSocketPacket> getWsPacketStream() {
@@ -400,12 +402,16 @@ public class WebSocketImpl implements WebSocket {
   }
 
   private boolean verifySecWebsocketAccept(String secWebsocketAccept) {
-    return Base64Utils.encodeToString(Sha1Utils.SHA1(secWebsocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")).equals(secWebsocketAccept);
+    byte[] digest = Sha1Utils.digest(secWebsocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+    return Base64Utils.encodeToString(digest).equals(secWebsocketAccept);
   }
 
   private void bindInitStreamObserver() {
     sendWsPacketStream.buffer(sendNotifier) // Is it need back pressure control?
-        .subscribe(packets -> packets.forEach(this::sendImmediately), this::onThrows, sendNotifier::onComplete);
+        .subscribe(packets ->
+        //
+        packets.forEach(this::sendImmediately), this::onThrows, sendNotifier::onComplete);
+
     getMessageStream().subscribe(p -> {
       Consumer<MessageEvent> onMessage = wsClient.config.getOnMessage();
       if (onMessage != null) {

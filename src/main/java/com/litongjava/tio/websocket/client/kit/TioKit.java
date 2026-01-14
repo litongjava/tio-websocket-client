@@ -7,8 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.litongjava.aio.Packet;
+import com.litongjava.aio.PacketMeta;
 import com.litongjava.tio.core.ChannelContext;
 import com.litongjava.tio.core.PacketSendMode;
+import com.litongjava.tio.core.task.SendPacketTask;
 
 public class TioKit {
   private static Logger log = LoggerFactory.getLogger(TioKit.class);
@@ -39,41 +41,35 @@ public class TioKit {
           countDownLatch.countDown();
         }
         if (channelContext != null) {
-          log.info("can't send data, {}, isClosed:{}, isRemoved:{}", channelContext, channelContext.isClosed, channelContext.isRemoved);
+          log.info("can't send data, {}, isClosed:{}, isRemoved:{}", channelContext, channelContext.isClosed,
+              channelContext.isRemoved);
         }
         return false;
       }
 
       boolean isSingleBlock = countDownLatch != null && packetSendMode == PacketSendMode.SINGLE_BLOCK;
 
-      boolean isAdded = false;
       if (countDownLatch != null) {
-        Packet.Meta meta = new Packet.Meta();
+        PacketMeta meta = new PacketMeta();
         meta.setCountDownLatch(countDownLatch);
         packet.setMeta(meta);
       }
 
-      if (channelContext.tioConfig.useQueueSend) {
-        isAdded = channelContext.sendRunnable.addMsg(packet);
-      } else {
-        isAdded = channelContext.sendRunnable.sendPacket(packet);
-      }
+      boolean sendInitiated = new SendPacketTask(channelContext).sendPacket(packet);
 
-      if (!isAdded) {
+      if (!sendInitiated) {
         if (countDownLatch != null) {
           countDownLatch.countDown();
         }
         return false;
-      }
-      if (channelContext.tioConfig.useQueueSend) {
-        channelContext.sendRunnable.execute();
       }
 
       if (isSingleBlock) {
         try {
           Boolean awaitFlag = countDownLatch.await(timeout, timeUnit);
           if (!awaitFlag) {
-            log.error("{}, 阻塞发送超时, timeout:{}s, packet:{}", channelContext, timeUnit.toSeconds(timeout), packet.logstr());
+            log.error("{}, sync send timeout, timeout:{}s, packet:{}", channelContext, timeUnit.toSeconds(timeout),
+                packet.logstr());
           }
         } catch (InterruptedException e) {
           log.error(e.toString(), e);

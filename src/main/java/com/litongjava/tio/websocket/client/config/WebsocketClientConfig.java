@@ -2,6 +2,7 @@ package com.litongjava.tio.websocket.client.config;
 
 import java.util.function.Consumer;
 
+import com.litongjava.tio.proxy.ProxyInfo;
 import com.litongjava.tio.utils.hutool.StrUtil;
 import com.litongjava.tio.websocket.client.event.CloseEvent;
 import com.litongjava.tio.websocket.client.event.ErrorEvent;
@@ -15,6 +16,8 @@ public class WebsocketClientConfig {
   private Consumer<MessageEvent> onMessage;
   private Consumer<OpenEvent> onOpen;
   private Consumer<Throwable> onThrows;
+
+  private ProxyInfo proxyInfo;
 
   public WebsocketClientConfig() {
   }
@@ -32,20 +35,23 @@ public class WebsocketClientConfig {
     this.onMessage = onMessage;
   }
 
-  public WebsocketClientConfig(Consumer<MessageEvent> onMessage, Consumer<ErrorEvent> onError, Consumer<CloseEvent> onClose) {
+  public WebsocketClientConfig(Consumer<MessageEvent> onMessage, Consumer<ErrorEvent> onError,
+      Consumer<CloseEvent> onClose) {
     this.onClose = onClose;
     this.onError = onError;
     this.onMessage = onMessage;
   }
 
-  public WebsocketClientConfig(Consumer<MessageEvent> onMessage, Consumer<ErrorEvent> onError, Consumer<CloseEvent> onClose, Consumer<Throwable> onThrows) {
+  public WebsocketClientConfig(Consumer<MessageEvent> onMessage, Consumer<ErrorEvent> onError,
+      Consumer<CloseEvent> onClose, Consumer<Throwable> onThrows) {
     this.onError = onError;
     this.onMessage = onMessage;
     this.onClose = onClose;
     this.onThrows = onThrows;
   }
 
-  public WebsocketClientConfig(Consumer<OpenEvent> onOpen, Consumer<MessageEvent> onMessage, Consumer<CloseEvent> onClose, Consumer<ErrorEvent> onError, Consumer<Throwable> onThrows) {
+  public WebsocketClientConfig(Consumer<OpenEvent> onOpen, Consumer<MessageEvent> onMessage,
+      Consumer<CloseEvent> onClose, Consumer<ErrorEvent> onError, Consumer<Throwable> onThrows) {
     this.charset = StrUtil.isBlank(charset) ? "UTF-8" : charset;
     this.onClose = onClose;
     this.onError = onError;
@@ -66,9 +72,9 @@ public class WebsocketClientConfig {
     return charset;
   }
 
-  //  public void setCharset(String charset) {
-  //    this.charset = charset;
-  //  }
+  // public void setCharset(String charset) {
+  // this.charset = charset;
+  // }
 
   public void setOnClose(Consumer<CloseEvent> onClose) {
     this.onClose = onClose;
@@ -100,5 +106,13 @@ public class WebsocketClientConfig {
 
   public Consumer<OpenEvent> getOnOpen() {
     return onOpen;
+  }
+
+  public ProxyInfo getProxyInfo() {
+    return proxyInfo;
+  }
+
+  public void setProxyInfo(ProxyInfo proxyInfo) {
+    this.proxyInfo = proxyInfo;
   }
 }

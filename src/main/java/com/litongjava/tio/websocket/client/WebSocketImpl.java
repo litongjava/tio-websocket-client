@@ -20,6 +20,7 @@ import com.litongjava.tio.http.common.HeaderValue;
 import com.litongjava.tio.http.common.HttpMethod;
 import com.litongjava.tio.http.common.HttpResponse;
 import com.litongjava.tio.http.common.HttpResponseStatus;
+import com.litongjava.tio.proxy.ProxyInfo;
 import com.litongjava.tio.utils.base64.Base64Utils;
 import com.litongjava.tio.utils.digest.Sha1Utils;
 import com.litongjava.tio.utils.hutool.StrUtil;
@@ -79,10 +80,17 @@ public class WebSocketImpl implements WebSocket {
     CountDownLatch wg = new CountDownLatch(1);
     int i = 1;
     while (wsClient.clientChannelContext == null) {
-      wsClient.clientChannelContext = wsClient.tioClient
-          .connect(new Node(wsClient.uri.getHost(), wsClient.uri.getPort()));
-      if (wsClient.clientChannelContext != null)
+
+      ProxyInfo proxyInfo = wsClient.config.getProxyInfo();
+
+      // 关键：调用支持 targetNode 的 connect（下一步在 TioClient 里加重载）
+      Node target = new Node(wsClient.uri.getHost(), wsClient.uri.getPort());
+      wsClient.clientChannelContext = wsClient.tioClient.connect(target, proxyInfo);
+
+      if (wsClient.clientChannelContext != null) {
         break;
+      }
+
       wg.await(10 * i, TimeUnit.MILLISECONDS);
       i++;
     }

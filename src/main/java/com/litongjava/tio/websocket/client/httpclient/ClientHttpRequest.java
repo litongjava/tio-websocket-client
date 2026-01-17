@@ -12,7 +12,6 @@ import com.litongjava.tio.http.common.RequestLine;
  *
  */
 public class ClientHttpRequest extends HttpRequest {
-
   /**
    * 
    */

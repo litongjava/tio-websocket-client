@@ -46,6 +46,6 @@ public class WebsocketClientAioListener implements ClientAioListener {
       return;
     }
     client.ws.clear(1011, remark);
-    channelContext.setAttribute(WebSocketImpl.clientIntoCtxAttribute, null);
+    //channelContext.setAttribute(WebSocketImpl.clientIntoCtxAttribute, null);
   }
 }

@@ -32,6 +32,7 @@ import com.litongjava.tio.websocket.client.httpclient.ClientHttpRequest;
 import com.litongjava.tio.websocket.client.kit.ByteKit;
 import com.litongjava.tio.websocket.client.kit.ObjKit;
 import com.litongjava.tio.websocket.client.kit.TioKit;
+import com.litongjava.tio.websocket.client.kit.WsPortUtils;
 import com.litongjava.tio.websocket.common.Opcode;
 import com.litongjava.tio.websocket.common.WebSocketPacket;
 import com.litongjava.tio.websocket.common.WebSocketRequest;
@@ -84,7 +85,9 @@ public class WebSocketImpl implements WebSocket {
       ProxyInfo proxyInfo = wsClient.config.getProxyInfo();
 
       // 关键：调用支持 targetNode 的 connect（下一步在 TioClient 里加重载）
-      Node target = new Node(wsClient.uri.getHost(), wsClient.uri.getPort());
+      String host = wsClient.uri.getHost();
+      int port = WsPortUtils.getPort(wsClient.uri);
+      Node target = new Node(host, port);
       wsClient.clientChannelContext = wsClient.tioClient.connect(target, proxyInfo);
 
       if (wsClient.clientChannelContext != null) {
@@ -349,7 +352,8 @@ public class WebSocketImpl implements WebSocket {
       headers.putAll(additionalHttpHeaders);
     }
 
-    headers.put("Host", wsClient.uri.getHost() + ":" + wsClient.uri.getPort());
+    int port = wsClient.targetPort;
+    headers.put("Host", wsClient.uri.getHost() + ":" + port);
     headers.put("Upgrade", "websocket");
     headers.put("Connection", "Upgrade");
     headers.put("Sec-WebSocket-Key", getSecWebsocketKey());
@@ -381,7 +385,6 @@ public class WebSocketImpl implements WebSocket {
             return;
           }
           // TODO: Sec-WebSocket-Extensions, Sec-WebSocket-Protocol
-
           readyState = WebSocket.OPEN;
           session.setHandshaked(true);
           onOpen();

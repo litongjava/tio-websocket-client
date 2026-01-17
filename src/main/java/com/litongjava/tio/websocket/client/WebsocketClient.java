@@ -13,12 +13,11 @@ import com.litongjava.tio.client.TioClient;
 import com.litongjava.tio.client.intf.ClientAioHandler;
 import com.litongjava.tio.client.intf.ClientAioListener;
 import com.litongjava.tio.websocket.client.config.WebsocketClientConfig;
-import com.litongjava.tio.websocket.client.kit.ReflectKit;
 import com.litongjava.tio.websocket.client.kit.UriKit;
+import com.litongjava.tio.websocket.client.kit.WsPortUtils;
 
 public class WebsocketClient {
-  private static Logger log = LoggerFactory.getLogger(WebsocketClient.class);
-
+  private static final Logger log = LoggerFactory.getLogger(WebsocketClient.class);
   static ClientAioHandler tioClientHandler = new WebscoketClientAioHander();
   static ClientAioListener aioListener = new WebsocketClientAioListener();
 
@@ -36,9 +35,9 @@ public class WebsocketClient {
   /**
    * To create a WsClient.
    *
-   * @param uri The uri to connect
-   * @param additionalHttpHeaders Additional headers added to the http package sent to the server
-   *     during the handshake
+   * @param uri                   The uri to connect
+   * @param additionalHttpHeaders Additional headers added to the http package
+   *                              sent to the server during the handshake
    * @return
    * @throws IOException
    */
@@ -49,9 +48,9 @@ public class WebsocketClient {
   /**
    * To create a WsClient.
    *
-   * @param uri The uri to connect
-   * @param config The config of client. If you change the value later, you need to bear the
-   *     possible consequences.
+   * @param uri    The uri to connect
+   * @param config The config of client. If you change the value later, you need
+   *               to bear the possible consequences.
    * @return
    * @throws IOException
    */
@@ -62,15 +61,17 @@ public class WebsocketClient {
   /**
    * To create a WsClient.
    *
-   * @param uri The uri to connect
-   * @param additionalHttpHeaders Additional headers added to the http package sent to the server
-   *     during the handshake
-   * @param config The config of client. If you change the value later, you need to bear the
-   *     possible consequences.
+   * @param uri                   The uri to connect
+   * @param additionalHttpHeaders Additional headers added to the http package
+   *                              sent to the server during the handshake
+   * @param config                The config of client. If you change the value
+   *                              later, you need to bear the possible
+   *                              consequences.
    * @return
    * @throws IOException
    */
-  public static WebsocketClient create(String uri, Map<String, String> additionalHttpHeaders, WebsocketClientConfig config) throws Exception {
+  public static WebsocketClient create(String uri, Map<String, String> additionalHttpHeaders,
+      WebsocketClientConfig config) throws Exception {
     WebsocketClient client = new WebsocketClient(uri, additionalHttpHeaders);
     client.config = config;
     return client;
@@ -84,6 +85,7 @@ public class WebsocketClient {
   Map<String, String> additionalHttpHeaders;
   WebSocketImpl ws;
   ClientTioConfig clientTioConfig;
+  int targetPort;
 
   WebsocketClient(String rawUri) throws Exception {
     this(rawUri, null);
@@ -149,19 +151,13 @@ public class WebsocketClient {
 
   void construct() throws Exception {
     uri = UriKit.parseURI(rawUri);
-    int port = uri.getPort();
-    if (port == -1) {
-      if (uri.getScheme().equals("ws")) {
-        port = 80;
-        log.info("No port specified, use the default: {}", port);
-      } else {
-        port = 443;
-      }
-      try {
-        ReflectKit.setField(uri, "port", port);
-      } catch (Exception ex) {
-      }
-    }
+    targetPort = WsPortUtils.getPort(uri);
+//    try {
+//      ReflectKit.setField(uri, "port", port);
+//    } catch (Exception ex) {
+//      log.error(ex.getMessage());
+//    }
+
     clientTioConfig = new ClientTioConfig(tioClientHandler, aioListener, null);
     clientTioConfig.setHeartbeatTimeout(0);
     if (uri.getScheme().equals("ws")) {

@@ -199,9 +199,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.litongjava.model.sys.SysConst;
 import com.litongjava.tio.core.ChannelContext;
 import com.litongjava.tio.core.TioConfig;
@@ -215,10 +212,6 @@ import com.litongjava.tio.http.common.RequestLine;
  * @author tanyaowu 2018年7月8日 上午9:36:54
  */
 public class HttpRequestEncoder {
-
-  @SuppressWarnings("unused")
-  private static Logger log = LoggerFactory.getLogger(HttpRequestEncoder.class);
-
   /**
    * @param httpRequest
    * @param tioConfig
@@ -226,8 +219,7 @@ public class HttpRequestEncoder {
    * @return
    * @author tanyaowu
    */
-  public static ByteBuffer encode(
-      HttpRequest httpRequest, TioConfig tioConfig, ChannelContext channelContext)
+  public static ByteBuffer encode(HttpRequest httpRequest, TioConfig tioConfig, ChannelContext channelContext)
       throws UnsupportedEncodingException {
     int bodyLength = 0;
     byte[] body = httpRequest.getBody();
@@ -235,8 +227,7 @@ public class HttpRequestEncoder {
       bodyLength = body.length;
     }
     if (bodyLength > 0) {
-      httpRequest.addHeader(
-          RequestHeaderKey.Content_Length, Integer.toString(bodyLength));
+      httpRequest.addHeader(RequestHeaderKey.Content_Length, Integer.toString(bodyLength));
     }
 
     RequestLine requestLine = httpRequest.getRequestLine();
@@ -247,16 +238,12 @@ public class HttpRequestEncoder {
 
     Set<Entry<String, String>> headersEntry = headers.entrySet();
     for (Entry<String, String> entry : headersEntry) {
-      sb.append(entry.getKey())
-          .append(SysConst.STR_COL)
-          .append(entry.getValue())
-          .append(SysConst.CRLF);
+      sb.append(entry.getKey()).append(SysConst.STR_COL).append(entry.getValue()).append(SysConst.CRLF);
     }
-    //		sb.append(SysConst.CRLF);
+    // sb.append(SysConst.CRLF);
     byte[] headerBytes = sb.toString().getBytes();
 
-    ByteBuffer buffer =
-        ByteBuffer.allocate(requestLineBytes.length + 2 + headerBytes.length + 2 + bodyLength);
+    ByteBuffer buffer = ByteBuffer.allocate(requestLineBytes.length + 2 + headerBytes.length + 2 + bodyLength);
     buffer.put(requestLineBytes);
     buffer.put(SysConst.CR_LF);
     buffer.put(headerBytes);
@@ -269,5 +256,6 @@ public class HttpRequestEncoder {
   }
 
   /** @author tanyaowu */
-  private HttpRequestEncoder() {}
+  private HttpRequestEncoder() {
+  }
 }

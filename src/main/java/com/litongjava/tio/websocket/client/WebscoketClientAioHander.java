@@ -37,7 +37,8 @@ public class WebscoketClientAioHander implements ClientAioHandler {
   }
 
   @Override
-  public Packet decode(ByteBuffer buffer, int limit, int position, int readableLength, ChannelContext ctx) throws TioDecodeException {
+  public Packet decode(ByteBuffer buffer, int limit, int position, int readableLength, ChannelContext ctx)
+      throws TioDecodeException {
     WebSocketSessionContext session = (WebSocketSessionContext) ctx.get();
     if (!session.isHandshaked()) {
       HttpResponse response = HttpResponseDecoder.decode(buffer, limit, position, readableLength, ctx);

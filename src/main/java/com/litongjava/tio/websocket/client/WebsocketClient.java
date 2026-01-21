@@ -4,9 +4,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.litongjava.tio.client.ClientChannelContext;
 import com.litongjava.tio.client.ClientTioConfig;
 import com.litongjava.tio.client.TioClient;
@@ -17,7 +14,6 @@ import com.litongjava.tio.websocket.client.kit.UriKit;
 import com.litongjava.tio.websocket.client.kit.WsPortUtils;
 
 public class WebsocketClient {
-  private static final Logger log = LoggerFactory.getLogger(WebsocketClient.class);
   static ClientAioHandler tioClientHandler = new WebscoketClientAioHander();
   static ClientAioListener aioListener = new WebsocketClientAioListener();
 

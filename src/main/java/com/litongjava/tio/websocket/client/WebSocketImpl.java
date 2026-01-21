@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 
 import com.litongjava.aio.Packet;
 import com.litongjava.tio.client.ClientChannelContext;
+import com.litongjava.tio.consts.TioConst;
 import com.litongjava.tio.core.Node;
 import com.litongjava.tio.core.Tio;
 import com.litongjava.tio.http.common.HeaderName;
@@ -80,30 +81,54 @@ public class WebSocketImpl implements WebSocket {
   public synchronized void connect() throws Exception {
     CountDownLatch wg = new CountDownLatch(1);
     int i = 1;
-    while (wsClient.clientChannelContext == null) {
 
+    while (wsClient.clientChannelContext == null) {
       ProxyInfo proxyInfo = wsClient.config.getProxyInfo();
 
-      // 关键：调用支持 targetNode 的 connect（下一步在 TioClient 里加重载）
       String host = wsClient.uri.getHost();
       int port = WsPortUtils.getPort(wsClient.uri);
       Node target = new Node(host, port);
+
       wsClient.clientChannelContext = wsClient.tioClient.connect(target, proxyInfo);
 
       if (wsClient.clientChannelContext != null) {
         break;
       }
 
-      wg.await(10 * i, TimeUnit.MILLISECONDS);
+      wg.await(10L * i, TimeUnit.MILLISECONDS);
       i++;
     }
 
     ctx = wsClient.clientChannelContext;
+
+    // Attach publisher before any handshake traffic is sent.
     ctx.setAttribute(packetPublisherKey, publisher);
     ctx.setAttribute(clientIntoCtxAttribute, wsClient);
+
+    // Install a TLS handshake latch so upper-layer protocol can wait safely.
+    CountDownLatch sslLatch = new CountDownLatch(1);
+    ctx.setAttribute(TioConst.ATTR_SSL_HANDSHAKE_LATCH, sslLatch);
+
     WebSocketSessionContext session = new WebSocketSessionContext();
     ctx.set(session);
 
+    // If this is a TLS connection, wait until the TLS handshake is completed.
+    // This avoids sending HTTP Upgrade data too early.
+    boolean isSsl = ctx.getTioConfig() != null && ctx.getTioConfig().isSsl();
+    if (isSsl) {
+      // Fast path: handshake already completed
+      if (ctx.sslFacadeContext != null && ctx.sslFacadeContext.isHandshakeCompleted()) {
+        // do nothing
+      } else {
+        boolean ok = sslLatch.await(15, TimeUnit.SECONDS);
+        if (!ok) {
+          close(1002, "ssl handshake timeout");
+          return;
+        }
+      }
+    }
+
+    // Now it is safe to send WebSocket HTTP Upgrade request.
     handshake();
   }
 
